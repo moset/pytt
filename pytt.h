@@ -73,15 +73,6 @@ struct pytt_entry_t;
    takes O(1) time.
 */
 
-/** The header for an entry in a pytt hash table.
- *  If large (> 64k) keys are necessary, #define PYTT_LARGE_KEYS.
- *  It will change the signature of an entry so that keylen gets
- *  24 bits and flags only eight. This means the compiler has to
- *  do some bit twiddling before getting the values out, so it
- *  may be slightly slower.
- *  NOTE: If you change this #define without recompiling pytt,
- *        things are liable to blow up in your face.
-*/
 struct pytt_entry_hdr_t
 {
   struct pytt_entry_t  *prev;
