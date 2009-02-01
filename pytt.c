@@ -77,14 +77,6 @@ void *pytt_entry_get_key_ptr(pytt_t *ht, pytt_entry_t *ent)
   return ent->data + ht->data_size;
 }
 
-/*
-void *createHashTableData(pytt_t *ht, const void *key, unsigned short keylen)
-{
-  pytt_entry_t *ent = createpytt_entry_t(ht, key, keylen);
-  return ent->data;
-}
-*/
-
 pytt_entry_t *pytt_entry_create(pytt_t *ht, const void *key, uint16_t keylen)
 {
   unsigned int mask = (1<<(ht->bucket_bits))-1;

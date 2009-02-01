@@ -64,9 +64,6 @@ typedef unsigned char  uint8_t;
 #endif
 
 #define PYTT_ENTRY_LAST_IN_BUCKET   1
-/*
-#define PYTT_ENTRY_FIRST_IN_BUCKET  2
-*/
 
 struct pytt_entry_t;
 
@@ -153,9 +150,5 @@ void          pytt_entry_destroy(pytt_t *ht, pytt_entry_t *ent);
 
 /** Get a pointer to the key for an entry. */
 void         *pytt_entry_get_key_ptr(pytt_t *ht, pytt_entry_t *ent);
-
-/*
-  void *createHashTableData(pytt_t *ht, const void *key, unsigned short keyLength);
-*/
 
 #endif /* PYTT_H */
