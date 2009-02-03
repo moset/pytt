@@ -92,7 +92,7 @@ typedef struct pytt_entry_t
 
 
 /* HOLY MOLY IT'S ALL A BIG MACRO! */
-#define PYTT_DEFINE_TYPED_TABLE(entry_type, prefix)                     \
+#define PYTT_DECLARE_TYPED_TABLE(entry_type, prefix)                     \
 typedef struct								\
 {									\
   uint16_t       bucket_bits;						\
@@ -116,7 +116,7 @@ typedef struct								\
   entry_type  *buckets[];						\
 } prefix ## _t;
 
-PYTT_DEFINE_TYPED_TABLE(pytt_entry_t, pytt)
+PYTT_DECLARE_TYPED_TABLE(pytt_entry_t, pytt)
 
 /** Create a new hash table. Uses malloc and free for memory management. */
 extern pytt_t       *pytt_create(int bucket_bits, int data_size);
@@ -148,8 +148,8 @@ extern pytt_entry_t *pytt_entry_next(pytt_entry_t *ent);
 /** Get a pointer to the key for an entry. */
 extern void         *pytt_entry_get_key_ptr(pytt_t *ht, pytt_entry_t *ent);
 
-#define PYTT_DEFINE_TYPED(entry_type, prefix)				\
-  PYTT_DEFINE_TYPED_TABLE(entry_type, prefix)				\
+#define PYTT_DECLARE_TYPED(entry_type, prefix)				\
+  PYTT_DECLARE_TYPED_TABLE(entry_type, prefix)				\
   extern prefix ## _t *prefix ## _create(int bucket_bits);		\
   extern void prefix ## _destroy(prefix ## _t *ht);			\
   extern entry_type *prefix ## _entry_create(prefix ## _t *ht, const void *key, uint16_t keylen); \
@@ -159,7 +159,7 @@ extern void         *pytt_entry_get_key_ptr(pytt_t *ht, pytt_entry_t *ent);
   extern entry_type *prefix ## _entry_next(entry_type *ent); 
 
 
-#define PYTT_DECLARE_TYPED(entry_type, prefix)				\
+#define PYTT_IMPLEMENT_TYPED(entry_type, prefix)				\
   prefix ## _t *prefix ## _create(int bucket_bits)			\
   { return (prefix ## _t *) pytt_create(bucket_bits, sizeof(entry_type) - sizeof(pytt_entry_t)); } \
   									\

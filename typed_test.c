@@ -6,7 +6,7 @@ typedef struct {
   int value;
 } int_entry_t;
 
-PYTT_DEFINE_TYPED(int_entry_t, int_table)
+PYTT_DECLARE_TYPED(int_entry_t, int_table)
 
 int main(int argc, char **argv)
 {
@@ -34,4 +34,4 @@ int main(int argc, char **argv)
   return 0;
 }
 
-PYTT_DECLARE_TYPED(int_entry_t, int_table)
+PYTT_IMPLEMENT_TYPED(int_entry_t, int_table)

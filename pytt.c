@@ -106,12 +106,15 @@ pytt_entry_t *pytt_entry_create(pytt_t *ht, const void *key, uint16_t keylen)
     ent = ht->alloc(ent_size);
     memcpy(ent->data + ht->data_size, key, keylen);
     ent->hdr.keylen = keylen;
+	ent->hdr.prev = NULL;
+	ent->hdr.next = NULL;
+	ent->hdr.flags = 0;
 
     if(ht->buckets[bucket]) {
       before = ht->buckets[bucket];
     } else {
       before = ht->first;
-      ent->hdr.flags = PYTT_ENTRY_LAST_IN_BUCKET;
+      ent->hdr.flags |= PYTT_ENTRY_LAST_IN_BUCKET;
     }
 
     if(before) {
