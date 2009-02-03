@@ -102,6 +102,7 @@ int main(int argc, char **argv)
   printf("Collisions:     %8d\n", collision_count);
   printf("Collision ratio:  %.4f\n", (double) collision_count / (double) entry_count);
   printf("Largest bucket: %8d\n", largest_bucket);
+  printf("Average bucket: %10.1f\n", (double) entry_count / (double) bucket_count);
 
   pytt_destroy(ht);
 

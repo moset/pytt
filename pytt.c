@@ -201,4 +201,3 @@ void pytt_destroy(pytt_t *ht)
     ht->dealloc(ht);
   }
 }
-

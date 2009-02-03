@@ -90,56 +90,97 @@ typedef struct pytt_entry_t
 
 #define PYTT_MALLOC_TABLE_HEADER    1  /**< Use malloc to allocate table and bucket pointers. */
 
-typedef struct
-{
-  uint16_t       bucket_bits;
-  uint16_t       flags;
-  uint32_t       data_size;
-  uint32_t       hash_initializer;
 
-  /** These get called to initialize and free data in entries. */
-  void         (*create_callback)(pytt_entry_t *ent);
-  void         (*remove_callback)(pytt_entry_t *ent);
+/* HOLY MOLY IT'S ALL A BIG MACRO! */
+#define PYTT_DEFINE_TYPED_TABLE(entry_type, prefix)                     \
+typedef struct								\
+{									\
+  uint16_t       bucket_bits;						\
+  uint16_t       flags;							\
+  uint32_t       data_size;						\
+  uint32_t       hash_initializer;					\
+									\
+  /** These get called to initialize and free data in entries. */	\
+  void         (*create_callback)(entry_type *ent);			\
+  void         (*remove_callback)(entry_type *ent);			\
+									\
+  /** Memory management functions used when allocating entries and (optionally)	\
+   *  when allocating the table itself. (See: PYTT_MALLOC_TABLE_HEADER flag). \
+   */									\
+  void        *(*alloc)(uint32_t bytes);				\
+  void         (*dealloc)(void *pointer);				\
+									\
+  /** The first entry in the linked list. */				\
+  entry_type  *first;							\
+  /** Storage of the buckets that make up the hash table. */		\
+  entry_type  *buckets[];						\
+} prefix ## _t;
 
-  /** Memory management functions used when allocating entries and (optionally)
-   *  when allocating the table itself. (See: PYTT_MALLOC_TABLE_HEADER flag).
-   */
-  void        *(*alloc)(uint32_t bytes);
-  void         (*dealloc)(void *pointer);
-
-  /** The first entry in the linked list. */
-  pytt_entry_t  *first;
-  /** Storage of the buckets that make up the hash table. */
-  pytt_entry_t  *buckets[];
-} pytt_t;
-
+PYTT_DEFINE_TYPED_TABLE(pytt_entry_t, pytt)
 
 /** Create a new hash table. Uses malloc and free for memory management. */
-pytt_t       *pytt_create(int bucket_bits, int data_size);
+extern pytt_t       *pytt_create(int bucket_bits, int data_size);
 
 /** Create a new hash table using custom parameters. */
-pytt_t       *pytt_create_custom(int bucket_bits, int data_size,
+extern pytt_t       *pytt_create_custom(int bucket_bits, int data_size,
 				 void *(*alloc)(uint32_t bytes),
 				 void (*dealloc)(void *pointer),
 				 uint32_t hash_initializer,
 				 uint16_t flags);
 
 /** Destroy a previously created hash table. */
-void          pytt_destroy(pytt_t *ht);
+extern void          pytt_destroy(pytt_t *ht);
 
 /** Get the total number of buckets in a hash table. */
-uint32_t      pytt_get_bucket_count(pytt_t *ht);
+extern uint32_t      pytt_get_bucket_count(pytt_t *ht);
 
 /** Create an entry for the key, or return the one that already exists. */
-pytt_entry_t *pytt_entry_create(pytt_t *ht, const void *key, uint16_t keylen);
+extern pytt_entry_t *pytt_entry_create(pytt_t *ht, const void *key, uint16_t keylen);
 /** Create the entry for the key or NULL if it doesn't exist. */
-pytt_entry_t *pytt_entry_get(pytt_t *ht, const void *key, uint16_t keylen);
+extern pytt_entry_t *pytt_entry_get(pytt_t *ht, const void *key, uint16_t keylen);
 /** Destroy the entry for a key. */
-void          pytt_entry_remove(pytt_t *ht, const void *key, uint16_t keylen);
+extern void          pytt_entry_remove(pytt_t *ht, const void *key, uint16_t keylen);
 /** Destroy an entry */
-void          pytt_entry_destroy(pytt_t *ht, pytt_entry_t *ent);
+extern void          pytt_entry_destroy(pytt_t *ht, pytt_entry_t *ent);
+/** Return the next entry in order */
+extern pytt_entry_t *pytt_entry_next(pytt_entry_t *ent);
 
 /** Get a pointer to the key for an entry. */
-void         *pytt_entry_get_key_ptr(pytt_t *ht, pytt_entry_t *ent);
+extern void         *pytt_entry_get_key_ptr(pytt_t *ht, pytt_entry_t *ent);
+
+#define PYTT_DEFINE_TYPED(entry_type, prefix)				\
+  PYTT_DEFINE_TYPED_TABLE(entry_type, prefix)				\
+  extern prefix ## _t *prefix ## _create(int bucket_bits);		\
+  extern void prefix ## _destroy(prefix ## _t *ht);			\
+  extern entry_type *prefix ## _entry_create(prefix ## _t *ht, const void *key, uint16_t keylen); \
+  extern entry_type *prefix ## _entry_get(prefix ## _t *ht, const void *key, uint16_t keylen); \
+  extern void prefix ## _entry_remove(prefix ## _t *ht, const void *key, uint16_t keylen); \
+  extern void prefix ## _entry_destroy(prefix ## _t *ht, entry_type *ent); \
+  extern entry_type *prefix ## _entry_next(entry_type *ent); 
+
+
+#define PYTT_DECLARE_TYPED(entry_type, prefix)				\
+  prefix ## _t *prefix ## _create(int bucket_bits)			\
+  { return (prefix ## _t *) pytt_create(bucket_bits, sizeof(entry_type) - sizeof(pytt_entry_t)); } \
+  									\
+  void prefix ## _destroy(prefix ## _t *ht)				\
+  { pytt_destroy((pytt_t *) ht); }					\
+									\
+  entry_type *prefix ## _entry_create(prefix ## _t *ht, const void *key, uint16_t keylen) \
+  { return (entry_type *) pytt_entry_create((pytt_t *) ht, key, keylen); } \
+									\
+  entry_type *prefix ## _entry_get(prefix ## _t *ht, const void *key, uint16_t keylen) \
+  { return (entry_type *) pytt_entry_get((pytt_t *) ht, key, keylen); }	\
+									\
+  void prefix ## _entry_remove(prefix ## _t *ht, const void *key, uint16_t keylen) \
+  { pytt_entry_remove((pytt_t *) ht, key, keylen); }			\
+									\
+  void prefix ## _entry_destroy(prefix ## _t *ht, entry_type *ent)	\
+  { pytt_entry_destroy((pytt_t *) ht, (pytt_entry_t *) ent); }		\
+									\
+  extern entry_type *prefix ## _entry_next(entry_type *ent)		\
+  { return (entry_type *) ent->hdr.next; }
+
+
 
 #endif /* PYTT_H */
