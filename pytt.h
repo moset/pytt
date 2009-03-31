@@ -54,13 +54,13 @@
 #ifndef PYTT_H
 #define PYTT_H
 
-#ifdef WIN32
+#ifdef HAVE_STDINT
+#include <stdint.h>
+#else
 /* Might not always be appropriate. Stolen from lookup3.h. :) */
 typedef unsigned int   uint32_t;
 typedef unsigned short uint16_t;
 typedef unsigned char  uint8_t;
-#else
-#include <stdint.h>
 #endif
 
 #define PYTT_ENTRY_LAST_IN_BUCKET   1
@@ -140,6 +140,13 @@ extern pytt_entry_t *pytt_entry_create(pytt_t *ht, const void *key, uint16_t key
 extern pytt_entry_t *pytt_entry_get(pytt_t *ht, const void *key, uint16_t keylen);
 /** Destroy the entry for a key. */
 extern void          pytt_entry_remove(pytt_t *ht, const void *key, uint16_t keylen);
+/** Same as pytt_entry_create, but with key being a zero-terminated string. */
+extern pytt_entry_t *pytt_entry_create_z(pytt_t *ht, const char *key);
+/** Same as pytt_entry_get, but with key being a zero-terminated string. */
+extern pytt_entry_t *pytt_entry_get_z(pytt_t *ht, const char *key);
+/** Same as pytt_entry_remove, but with key being a zero-terminated string. */
+extern void pytt_entry_remove_z(pytt_t *ht, const char *key);
+
 /** Destroy an entry */
 extern void          pytt_entry_destroy(pytt_t *ht, pytt_entry_t *ent);
 /** Return the next entry in order */
@@ -155,13 +162,20 @@ extern void         *pytt_entry_get_key_ptr(pytt_t *ht, pytt_entry_t *ent);
   extern entry_type *prefix ## _entry_create(prefix ## _t *ht, const void *key, uint16_t keylen); \
   extern entry_type *prefix ## _entry_get(prefix ## _t *ht, const void *key, uint16_t keylen); \
   extern void prefix ## _entry_remove(prefix ## _t *ht, const void *key, uint16_t keylen); \
+  extern entry_type *prefix ## _entry_create_z(prefix ## _t *ht, const void *key); \
+  extern entry_type *prefix ## _entry_get_z(prefix ## _t *ht, const void *key); \
+  extern void prefix ## _entry_remove_z(prefix ## _t *ht, const void *key); \
   extern void prefix ## _entry_destroy(prefix ## _t *ht, entry_type *ent); \
   extern entry_type *prefix ## _entry_next(entry_type *ent); 
 
 
-#define PYTT_IMPLEMENT_TYPED(entry_type, prefix)				\
+#define PYTT_IMPLEMENT_TYPED(entry_type, prefix, ...)				\
   prefix ## _t *prefix ## _create(int bucket_bits)			\
-  { return (prefix ## _t *) pytt_create(bucket_bits, sizeof(entry_type) - sizeof(pytt_entry_t)); } \
+  {                                                         \
+	prefix ## _t *table = (prefix ## _t *) pytt_create(bucket_bits, sizeof(entry_type) - sizeof(pytt_entry_t)); \
+	__VA_ARGS__   \
+	return table; \
+  } \
   									\
   void prefix ## _destroy(prefix ## _t *ht)				\
   { pytt_destroy((pytt_t *) ht); }					\
@@ -175,12 +189,19 @@ extern void         *pytt_entry_get_key_ptr(pytt_t *ht, pytt_entry_t *ent);
   void prefix ## _entry_remove(prefix ## _t *ht, const void *key, uint16_t keylen) \
   { pytt_entry_remove((pytt_t *) ht, key, keylen); }			\
 									\
+  entry_type *prefix ## _entry_create_z(prefix ## _t *ht, const char *key) \
+  { return (entry_type *) pytt_entry_create_z((pytt_t *) ht, key); } \
+									\
+  entry_type *prefix ## _entry_get_z(prefix ## _t *ht, const char *key) \
+  { return (entry_type *) pytt_entry_get_z((pytt_t *) ht, key); }	\
+									\
+  void prefix ## _entry_remove_z(prefix ## _t *ht, const void *key) \
+  { pytt_entry_remove_z((pytt_t *) ht, key); }			\
+									\
   void prefix ## _entry_destroy(prefix ## _t *ht, entry_type *ent)	\
   { pytt_entry_destroy((pytt_t *) ht, (pytt_entry_t *) ent); }		\
 									\
   extern entry_type *prefix ## _entry_next(entry_type *ent)		\
   { return (entry_type *) ent->hdr.next; }
-
-
 
 #endif /* PYTT_H */

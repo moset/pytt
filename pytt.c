@@ -184,6 +184,23 @@ void pytt_entry_destroy(pytt_t *ht, pytt_entry_t *ent)
   ht->dealloc(ent);
 }
 
+
+pytt_entry_t *pytt_entry_create_z(pytt_t *ht, const char *key)
+{
+	return pytt_entry_create(ht, key, (uint16_t) strlen(key)+1);
+}
+
+pytt_entry_t *pytt_entry_get_z(pytt_t *ht, const char *key)
+{
+	return pytt_entry_get(ht, key, (uint16_t) strlen(key)+1);
+}
+
+void pytt_entry_remove_z(pytt_t *ht, const char *key)
+{
+	pytt_entry_remove(ht, key, (uint16_t) strlen(key)+1);
+}
+
+
 void pytt_destroy(pytt_t *ht)
 {
   pytt_entry_t *ent = ht->first;
