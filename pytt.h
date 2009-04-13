@@ -54,7 +54,7 @@
 #ifndef PYTT_H
 #define PYTT_H
 
-#ifdef HAVE_STDINT
+#ifndef PYTT_NO_STDINT
 #include <stdint.h>
 #else
 /* Might not always be appropriate. Stolen from lookup3.h. :) */
@@ -82,10 +82,12 @@ struct pytt_entry_hdr_t
   uint16_t              flags;
 };
 
+#define PYTT_HDR        struct pytt_entry_hdr_t  hdr
+
 typedef struct pytt_entry_t
 {
-  struct pytt_entry_hdr_t  hdr;
-  char                     data[];
+	PYTT_HDR;
+	char                     data[];
 } pytt_entry_t;
 
 #define PYTT_MALLOC_TABLE_HEADER    1  /**< Use malloc to allocate table and bucket pointers. */
@@ -93,7 +95,7 @@ typedef struct pytt_entry_t
 
 /* HOLY MOLY IT'S ALL A BIG MACRO! */
 #define PYTT_DECLARE_TYPED_TABLE(entry_type, prefix)                     \
-typedef struct								\
+typedef struct prefix##_t							\
 {									\
   uint16_t       bucket_bits;						\
   uint16_t       flags;							\
@@ -155,25 +157,24 @@ extern pytt_entry_t *pytt_entry_next(pytt_entry_t *ent);
 /** Get a pointer to the key for an entry. */
 extern void         *pytt_entry_get_key_ptr(pytt_t *ht, pytt_entry_t *ent);
 
-#define PYTT_DECLARE_TYPED(entry_type, prefix)				\
-  PYTT_DECLARE_TYPED_TABLE(entry_type, prefix)				\
-  extern prefix ## _t *prefix ## _create(int bucket_bits);		\
+#define PYTT_DECLARE_TYPED(entry_type, prefix)              \
+  PYTT_DECLARE_TYPED_TABLE(entry_type, prefix)              \
+  extern prefix ## _t *prefix ## _create(int bucket_bits);  \
   extern void prefix ## _destroy(prefix ## _t *ht);			\
   extern entry_type *prefix ## _entry_create(prefix ## _t *ht, const void *key, uint16_t keylen); \
   extern entry_type *prefix ## _entry_get(prefix ## _t *ht, const void *key, uint16_t keylen); \
   extern void prefix ## _entry_remove(prefix ## _t *ht, const void *key, uint16_t keylen); \
-  extern entry_type *prefix ## _entry_create_z(prefix ## _t *ht, const void *key); \
-  extern entry_type *prefix ## _entry_get_z(prefix ## _t *ht, const void *key); \
-  extern void prefix ## _entry_remove_z(prefix ## _t *ht, const void *key); \
+  extern entry_type *prefix ## _entry_create_z(prefix ## _t *ht, const char *key); \
+  extern entry_type *prefix ## _entry_get_z(prefix ## _t *ht, const char *key); \
+  extern void prefix ## _entry_remove_z(prefix ## _t *ht, const char *key); \
   extern void prefix ## _entry_destroy(prefix ## _t *ht, entry_type *ent); \
   extern entry_type *prefix ## _entry_next(entry_type *ent); 
 
-
-#define PYTT_IMPLEMENT_TYPED(entry_type, prefix, ...)				\
+#define PYTT_IMPLEMENT_TYPED_WITH_INITCODE(entry_type, prefix, initcode)  \
   prefix ## _t *prefix ## _create(int bucket_bits)			\
   {                                                         \
 	prefix ## _t *table = (prefix ## _t *) pytt_create(bucket_bits, sizeof(entry_type) - sizeof(pytt_entry_t)); \
-	__VA_ARGS__   \
+    initcode      \
 	return table; \
   } \
   									\
@@ -195,7 +196,7 @@ extern void         *pytt_entry_get_key_ptr(pytt_t *ht, pytt_entry_t *ent);
   entry_type *prefix ## _entry_get_z(prefix ## _t *ht, const char *key) \
   { return (entry_type *) pytt_entry_get_z((pytt_t *) ht, key); }	\
 									\
-  void prefix ## _entry_remove_z(prefix ## _t *ht, const void *key) \
+  void prefix ## _entry_remove_z(prefix ## _t *ht, const char *key) \
   { pytt_entry_remove_z((pytt_t *) ht, key); }			\
 									\
   void prefix ## _entry_destroy(prefix ## _t *ht, entry_type *ent)	\
@@ -203,5 +204,13 @@ extern void         *pytt_entry_get_key_ptr(pytt_t *ht, pytt_entry_t *ent);
 									\
   extern entry_type *prefix ## _entry_next(entry_type *ent)		\
   { return (entry_type *) ent->hdr.next; }
+
+
+#define PYTT_IMPLEMENT_TYPED(entry_type, prefix)  \
+	PYTT_IMPLEMENT_TYPED_WITH_INITCODE(entry_type, prefix, ;)
+
+#define PYTT_TYPED(entry_type, prefix)           \
+  PYTT_DECLARE_TYPED_TABLE(entry_type, prefix)   \
+  PYTT_IMPLEMENT_TYPED(entry_type, prefix);
 
 #endif /* PYTT_H */

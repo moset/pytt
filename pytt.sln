@@ -1,0 +1,32 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 9.00
+# Visual Studio 2005
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "pytt", "pytt.vcproj", "{D539DCBF-8155-4E71-A8CE-337DE97C4322}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "beet", "beet\beet.vcproj", "{B5EB54E9-2494-4A72-BFEC-0D58A96D2CC9}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "beet_test", "beet_test\beet_test.vcproj", "{4FFAB236-D2CC-4C20-9BB4-88AD9DE75046}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{D539DCBF-8155-4E71-A8CE-337DE97C4322}.Debug|Win32.ActiveCfg = Debug|Win32
+		{D539DCBF-8155-4E71-A8CE-337DE97C4322}.Debug|Win32.Build.0 = Debug|Win32
+		{D539DCBF-8155-4E71-A8CE-337DE97C4322}.Release|Win32.ActiveCfg = Release|Win32
+		{D539DCBF-8155-4E71-A8CE-337DE97C4322}.Release|Win32.Build.0 = Release|Win32
+		{B5EB54E9-2494-4A72-BFEC-0D58A96D2CC9}.Debug|Win32.ActiveCfg = Debug|Win32
+		{B5EB54E9-2494-4A72-BFEC-0D58A96D2CC9}.Debug|Win32.Build.0 = Debug|Win32
+		{B5EB54E9-2494-4A72-BFEC-0D58A96D2CC9}.Release|Win32.ActiveCfg = Release|Win32
+		{B5EB54E9-2494-4A72-BFEC-0D58A96D2CC9}.Release|Win32.Build.0 = Release|Win32
+		{4FFAB236-D2CC-4C20-9BB4-88AD9DE75046}.Debug|Win32.ActiveCfg = Debug|Win32
+		{4FFAB236-D2CC-4C20-9BB4-88AD9DE75046}.Debug|Win32.Build.0 = Debug|Win32
+		{4FFAB236-D2CC-4C20-9BB4-88AD9DE75046}.Release|Win32.ActiveCfg = Release|Win32
+		{4FFAB236-D2CC-4C20-9BB4-88AD9DE75046}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
