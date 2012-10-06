@@ -8,7 +8,7 @@ endif
 
 TARGETS=pytt.o lookup3.o
 LIB_TARGET=libpytt.a
-TEST_TARGETS=hash_test collision_test typed_test
+TEST_TARGETS=hash_test collision_test typed_test bucket_integrity_test
 
 all: $(LIB_TARGET) $(TEST_TARGETS) pytt.pc
 
@@ -19,6 +19,7 @@ $(LIB_TARGET): $(TARGETS)
 hash_test: hash_test.c $(LIB_TARGET)
 collision_test: collision_test.c $(LIB_TARGET)
 typed_test: typed_test.c $(LIB_TARGET)
+bucket_integrity_test: bucket_integrity_test.c $(LIB_TARGET)
 
 %:%.c libpytt.a
 	$(CC) $(CFLAGS) $< -L. -lpytt $(LDFLAGS) -o $@

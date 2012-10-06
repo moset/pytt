@@ -13,16 +13,16 @@ int main(int argc, char **argv)
   int_table_t *ht = int_table_create(5);
   int_entry_t *ie;
 
-  ie = int_table_entry_create(ht, "four", 4);
+  ie = int_table_entry_create_z(ht, "four");
   ie->value = 4;
 
-  ie = int_table_entry_create(ht, "twenty-seven", 13);
+  ie = int_table_entry_create_z(ht, "twenty-seven");
   ie->value = 27;
 
-  ie = int_table_entry_get(ht, "four", 4);
+  ie = int_table_entry_get_z(ht, "four");
   printf("%d\n", ie->value);
 
-  ie = int_table_entry_get(ht, "twenty-seven", 13);
+  ie = int_table_entry_get_z(ht, "twenty-seven");
   printf("%d\n", ie->value);
 
   ie = ht->first;

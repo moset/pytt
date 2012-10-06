@@ -90,45 +90,50 @@ typedef struct pytt_entry_t
 	char                     data[];
 } pytt_entry_t;
 
-#define PYTT_MALLOC_TABLE_HEADER    1  /**< Use malloc to allocate table and bucket pointers. */
-
+#define PYTT_MALLOC_TABLE_HEADER    1  /**< Use malloc to allocate table and bucket pointers
+					*   even if alloc / dealloc is set. */
+				        
+typedef void *(*pytt_allocator_f)(size_t bytes);
+typedef void (*pytt_deallocator_f)(void *pointer);
 
 /* HOLY MOLY IT'S ALL A BIG MACRO! */
-#define PYTT_DECLARE_TYPED_TABLE(entry_type, prefix)                     \
+#define PYTT_DECLARE_TYPED_TABLE(entry_type, prefix)				\
 typedef struct prefix##_t							\
-{									\
-  uint16_t       bucket_bits;						\
-  uint16_t       flags;							\
-  uint32_t       data_size;						\
-  uint32_t       hash_initializer;					\
-									\
-  /** These get called to initialize and free data in entries. */	\
-  void         (*create_callback)(entry_type *ent);			\
-  void         (*remove_callback)(entry_type *ent);			\
-									\
+{										\
+  uint16_t       bucket_bits;							\
+  uint16_t       flags;								\
+  uint32_t       hash_initializer;						\
+  size_t         data_size;							\
+										\
+  /** These get called to initialize and free data in entries. */		\
+  void         (*create_callback)(entry_type *ent);				\
+  void         (*remove_callback)(entry_type *ent);				\
+										\
   /** Memory management functions used when allocating entries and (optionally)	\
-   *  when allocating the table itself. (See: PYTT_MALLOC_TABLE_HEADER flag). \
-   */									\
-  void        *(*alloc)(uint32_t bytes);				\
-  void         (*dealloc)(void *pointer);				\
-									\
-  /** The first entry in the linked list. */				\
-  entry_type  *first;							\
-  /** Storage of the buckets that make up the hash table. */		\
-  entry_type  *buckets[];						\
+   *  when allocating the table itself. (See: PYTT_MALLOC_TABLE_HEADER flag).	\
+   */										\
+  pytt_allocator_f alloc;							\
+  pytt_deallocator_f dealloc;							\
+										\
+  /** The first entry in the linked list. */					\
+  entry_type  *first;								\
+  /** Storage of the buckets that make up the hash table. */			\
+  entry_type  *buckets[];							\
 } prefix ## _t;
 
 PYTT_DECLARE_TYPED_TABLE(pytt_entry_t, pytt)
 
 /** Create a new hash table. Uses malloc and free for memory management. */
-extern pytt_t       *pytt_create(int bucket_bits, int data_size);
+extern pytt_t       *pytt_create(unsigned int bucket_bits,
+				 size_t       data_size);
 
 /** Create a new hash table using custom parameters. */
-extern pytt_t       *pytt_create_custom(int bucket_bits, int data_size,
-				 void *(*alloc)(uint32_t bytes),
-				 void (*dealloc)(void *pointer),
-				 uint32_t hash_initializer,
-				 uint16_t flags);
+extern pytt_t       *pytt_create_custom(unsigned int	   bucket_bits,
+					size_t		   data_size,
+					pytt_allocator_f   alloc,
+					pytt_deallocator_f dealloc,
+					uint32_t	   hash_initializer,
+					uint16_t	   flags);
 
 /** Destroy a previously created hash table. */
 extern void          pytt_destroy(pytt_t *ht);
@@ -157,52 +162,57 @@ extern pytt_entry_t *pytt_entry_next(pytt_entry_t *ent);
 /** Get a pointer to the key for an entry. */
 extern void         *pytt_entry_get_key_ptr(pytt_t *ht, pytt_entry_t *ent);
 
-#define PYTT_DECLARE_TYPED(entry_type, prefix)              \
-  PYTT_DECLARE_TYPED_TABLE(entry_type, prefix)              \
-  extern prefix ## _t *prefix ## _create(int bucket_bits);  \
-  extern void prefix ## _destroy(prefix ## _t *ht);			\
-  extern entry_type *prefix ## _entry_create(prefix ## _t *ht, const void *key, uint16_t keylen); \
-  extern entry_type *prefix ## _entry_get(prefix ## _t *ht, const void *key, uint16_t keylen); \
-  extern void prefix ## _entry_remove(prefix ## _t *ht, const void *key, uint16_t keylen); \
-  extern entry_type *prefix ## _entry_create_z(prefix ## _t *ht, const char *key); \
-  extern entry_type *prefix ## _entry_get_z(prefix ## _t *ht, const char *key); \
-  extern void prefix ## _entry_remove_z(prefix ## _t *ht, const char *key); \
-  extern void prefix ## _entry_destroy(prefix ## _t *ht, entry_type *ent); \
+#define PYTT_DECLARE_TYPED(entry_type, prefix)								\
+  PYTT_DECLARE_TYPED_TABLE(entry_type, prefix)								\
+  extern prefix ## _t *prefix ## _create(int bucket_bits);						\
+  extern void prefix ## _destroy(prefix ## _t *ht);							\
+  extern entry_type *prefix ## _entry_create(prefix ## _t *ht, const void *key, uint16_t keylen);	\
+  extern entry_type *prefix ## _entry_get(prefix ## _t *ht, const void *key, uint16_t keylen);		\
+  extern void prefix ## _entry_remove(prefix ## _t *ht, const void *key, uint16_t keylen);		\
+  extern entry_type *prefix ## _entry_create_z(prefix ## _t *ht, const char *key);			\
+  extern entry_type *prefix ## _entry_get_z(prefix ## _t *ht, const char *key);				\
+  extern void prefix ## _entry_remove_z(prefix ## _t *ht, const char *key);				\
+  extern void prefix ## _entry_destroy(prefix ## _t *ht, entry_type *ent);				\
+  extern entry_type *prefix ## _entry_prev(entry_type *ent);						\
   extern entry_type *prefix ## _entry_next(entry_type *ent); 
 
-#define PYTT_IMPLEMENT_TYPED_WITH_INITCODE(entry_type, prefix, initcode)  \
-  prefix ## _t *prefix ## _create(int bucket_bits)			\
-  {                                                         \
-	prefix ## _t *table = (prefix ## _t *) pytt_create(bucket_bits, sizeof(entry_type) - sizeof(pytt_entry_t)); \
-    initcode      \
-	return table; \
-  } \
-  									\
-  void prefix ## _destroy(prefix ## _t *ht)				\
-  { pytt_destroy((pytt_t *) ht); }					\
-									\
-  entry_type *prefix ## _entry_create(prefix ## _t *ht, const void *key, uint16_t keylen) \
-  { return (entry_type *) pytt_entry_create((pytt_t *) ht, key, keylen); } \
-									\
-  entry_type *prefix ## _entry_get(prefix ## _t *ht, const void *key, uint16_t keylen) \
-  { return (entry_type *) pytt_entry_get((pytt_t *) ht, key, keylen); }	\
-									\
-  void prefix ## _entry_remove(prefix ## _t *ht, const void *key, uint16_t keylen) \
-  { pytt_entry_remove((pytt_t *) ht, key, keylen); }			\
-									\
-  entry_type *prefix ## _entry_create_z(prefix ## _t *ht, const char *key) \
-  { return (entry_type *) pytt_entry_create_z((pytt_t *) ht, key); } \
-									\
-  entry_type *prefix ## _entry_get_z(prefix ## _t *ht, const char *key) \
-  { return (entry_type *) pytt_entry_get_z((pytt_t *) ht, key); }	\
-									\
-  void prefix ## _entry_remove_z(prefix ## _t *ht, const char *key) \
-  { pytt_entry_remove_z((pytt_t *) ht, key); }			\
-									\
-  void prefix ## _entry_destroy(prefix ## _t *ht, entry_type *ent)	\
-  { pytt_entry_destroy((pytt_t *) ht, (pytt_entry_t *) ent); }		\
-									\
-  extern entry_type *prefix ## _entry_next(entry_type *ent)		\
+#define PYTT_IMPLEMENT_TYPED_WITH_INITCODE(entry_type, prefix, initcode)			\
+  prefix ## _t *prefix ## _create(int bucket_bits)						\
+  {												\
+	prefix ## _t *table =									\
+          (prefix ## _t *) pytt_create(bucket_bits, sizeof(entry_type) - sizeof(pytt_entry_t)); \
+	initcode										\
+	return table;										\
+  }												\
+												\
+  void prefix ## _destroy(prefix ## _t *ht)							\
+  { pytt_destroy((pytt_t *) ht); }								\
+												\
+  entry_type *prefix ## _entry_create(prefix ## _t *ht, const void *key, uint16_t keylen)	\
+  { return (entry_type *) pytt_entry_create((pytt_t *) ht, key, keylen); }			\
+												\
+  entry_type *prefix ## _entry_get(prefix ## _t *ht, const void *key, uint16_t keylen)		\
+  { return (entry_type *) pytt_entry_get((pytt_t *) ht, key, keylen); }				\
+												\
+  void prefix ## _entry_remove(prefix ## _t *ht, const void *key, uint16_t keylen)		\
+  { pytt_entry_remove((pytt_t *) ht, key, keylen); }						\
+												\
+  entry_type *prefix ## _entry_create_z(prefix ## _t *ht, const char *key)			\
+  { return (entry_type *) pytt_entry_create_z((pytt_t *) ht, key); }				\
+												\
+  entry_type *prefix ## _entry_get_z(prefix ## _t *ht, const char *key)				\
+  { return (entry_type *) pytt_entry_get_z((pytt_t *) ht, key); }				\
+												\
+  void prefix ## _entry_remove_z(prefix ## _t *ht, const char *key)				\
+  { pytt_entry_remove_z((pytt_t *) ht, key); }							\
+												\
+  void prefix ## _entry_destroy(prefix ## _t *ht, entry_type *ent)				\
+  { pytt_entry_destroy((pytt_t *) ht, (pytt_entry_t *) ent); }					\
+												\
+  extern entry_type *prefix ## _entry_prev(entry_type *ent)					\
+  { return (entry_type *) ent->hdr.prev; }							\
+												\
+  extern entry_type *prefix ## _entry_next(entry_type *ent)					\
   { return (entry_type *) ent->hdr.next; }
 
 

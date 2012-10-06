@@ -19,20 +19,22 @@ static void ll_insert_before(pytt_entry_t *pos, pytt_entry_t *node)
   }
 }
 
-pytt_t *pytt_create(int bucket_bits, int data_size)
+pytt_t *pytt_create(unsigned int bucket_bits, size_t data_size)
 {
-  return pytt_create_custom(bucket_bits, data_size,
+  return pytt_create_custom(bucket_bits,
+			    data_size,
 			    &malloc,
 			    &free, 
 			    PYTT_DEFAULT_HASH_INITIALIZER,
 			    0);
 }
 
-pytt_t *pytt_create_custom(int bucket_bits, int data_size,
-			   void *(*alloc)(unsigned int bytes),
-			   void (*dealloc)(void *pointer),
-			   uint32_t hash_initializer,
-			   uint16_t flags)
+pytt_t *pytt_create_custom(unsigned int		bucket_bits,
+			   size_t		data_size,
+			   pytt_allocator_f	alloc,
+			   pytt_deallocator_f	dealloc,
+			   uint32_t		hash_initializer,
+			   uint16_t		flags)
 {
   pytt_t *ht;
   uint32_t nbuckets = 1<<(bucket_bits);
@@ -58,11 +60,11 @@ pytt_t *pytt_create_custom(int bucket_bits, int data_size,
     ht->dealloc = free;
   }
 
-  ht->data_size = data_size;
-  ht->bucket_bits = bucket_bits;
-  ht->flags = flags;
+  ht->data_size	       = data_size;
+  ht->bucket_bits      = bucket_bits;
+  ht->flags	       = flags;
   ht->hash_initializer = hash_initializer;
-  ht->first = NULL;
+  ht->first	       = NULL;
 
   return ht;
 }
@@ -79,10 +81,10 @@ void *pytt_entry_get_key_ptr(pytt_t *ht, pytt_entry_t *ent)
 
 pytt_entry_t *pytt_entry_create(pytt_t *ht, const void *key, uint16_t keylen)
 {
-  unsigned int mask = (1<<(ht->bucket_bits))-1;
-  unsigned int bucket = hashlittle(key, keylen, ht->hash_initializer) & mask;
-  pytt_entry_t *ent = NULL;
-  pytt_entry_t *before = NULL;
+  unsigned int	 mask	= (1<<(ht->bucket_bits))-1;
+  unsigned int	 bucket = hashlittle(key, keylen, ht->hash_initializer) & mask;
+  pytt_entry_t	*ent	= NULL;
+  pytt_entry_t	*before = NULL;
 
   /* Check for possible collision */
   pytt_entry_t *b = ht->buckets[bucket];
@@ -171,10 +173,21 @@ void pytt_entry_destroy(pytt_t *ht, pytt_entry_t *ent)
     ht->remove_callback(ent);
   }
 
-  if(! ent->hdr.prev) {
-    ht->first = ent->hdr.next;
-  } else {
+  if (ent->hdr.prev) {
     ent->hdr.prev->hdr.next = ent->hdr.next;
+
+    if (ent->hdr.flags & PYTT_ENTRY_LAST_IN_BUCKET) {
+      // If we're removing the last entry in a bucket, we
+      // must set that flag on the previous item. We do not
+      // need to check that the previous item is in the same
+      // bucket because if it it not, it will be the last entry
+      // in that bucket.
+
+      ent->hdr.prev->hdr.flags |= PYTT_ENTRY_LAST_IN_BUCKET;
+    }
+
+  } else {
+    ht->first = ent->hdr.next;
   }
 
   if(ent->hdr.next) {
