@@ -1,6 +1,6 @@
 /* Pytt - A simple hash table in C.
  *
- * Copyright (c) 2009, Oscar Sundbom
+ * Copyright (c) 2009, 2012, Oscar Sundbom
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -47,6 +47,10 @@
  *
  * This way, typing your own data and accessing the key is provided
  * automatically by the compiler. (Well, after a single cast. :))
+ *
+ * It is also possible to declare a typed version of the hash table
+ * using the PYTT_DECLARE_TYPED_TABLE macro, which makes the code a
+ * bit more type-safe as well as saving you the casting.
  *
  * This code uses lookup3.c by Bob Jenkis for hash key calculation.
  */
@@ -148,11 +152,6 @@ extern pytt_entry_t *pytt_entry_get(pytt_t *ht, const void *key, uint16_t keylen
 /** Destroy the entry for a key. */
 extern void          pytt_entry_remove(pytt_t *ht, const void *key, uint16_t keylen);
 /** Same as pytt_entry_create, but with key being a zero-terminated string. */
-extern pytt_entry_t *pytt_entry_create_z(pytt_t *ht, const char *key);
-/** Same as pytt_entry_get, but with key being a zero-terminated string. */
-extern pytt_entry_t *pytt_entry_get_z(pytt_t *ht, const char *key);
-/** Same as pytt_entry_remove, but with key being a zero-terminated string. */
-extern void pytt_entry_remove_z(pytt_t *ht, const char *key);
 
 /** Destroy an entry */
 extern void          pytt_entry_destroy(pytt_t *ht, pytt_entry_t *ent);
@@ -162,49 +161,53 @@ extern pytt_entry_t *pytt_entry_next(pytt_entry_t *ent);
 /** Get a pointer to the key for an entry. */
 extern void         *pytt_entry_get_key_ptr(pytt_t *ht, pytt_entry_t *ent);
 
-#define PYTT_DECLARE_TYPED(entry_type, prefix)								\
-  PYTT_DECLARE_TYPED_TABLE(entry_type, prefix)								\
-  extern prefix ## _t *prefix ## _create(int bucket_bits);						\
-  extern void prefix ## _destroy(prefix ## _t *ht);							\
-  extern entry_type *prefix ## _entry_create(prefix ## _t *ht, const void *key, uint16_t keylen);	\
-  extern entry_type *prefix ## _entry_get(prefix ## _t *ht, const void *key, uint16_t keylen);		\
-  extern void prefix ## _entry_remove(prefix ## _t *ht, const void *key, uint16_t keylen);		\
-  extern entry_type *prefix ## _entry_create_z(prefix ## _t *ht, const char *key);			\
-  extern entry_type *prefix ## _entry_get_z(prefix ## _t *ht, const char *key);				\
-  extern void prefix ## _entry_remove_z(prefix ## _t *ht, const char *key);				\
-  extern void prefix ## _entry_destroy(prefix ## _t *ht, entry_type *ent);				\
-  extern entry_type *prefix ## _entry_prev(entry_type *ent);						\
+#define PYTT_DECLARE_TYPED_WITH_OPTIONS(entry_type, prefix, ...)                \
+  PYTT_DECLARE_TYPED_TABLE(entry_type, prefix)					\
+  extern prefix ## _t *prefix ## _create(int bucket_bits);			\
+  extern void prefix ## _destroy(prefix ## _t *ht);				\
+  extern entry_type *prefix ## _entry_create(prefix ## _t *ht, __VA_ARGS__);	\
+  extern entry_type *prefix ## _entry_get(prefix ## _t *ht, __VA_ARGS__);	\
+  extern void prefix ## _entry_remove(prefix ## _t *ht, __VA_ARGS__);		\
+  extern void prefix ## _entry_destroy(prefix ## _t *ht, entry_type *ent);	\
+  extern entry_type *prefix ## _entry_prev(entry_type *ent);			\
   extern entry_type *prefix ## _entry_next(entry_type *ent); 
 
-#define PYTT_IMPLEMENT_TYPED_WITH_INITCODE(entry_type, prefix, initcode)			\
+
+#define PYTT_DECLARE_TYPED(entry_type, prefix) \
+  PYTT_DECLARE_TYPED_WITH_OPTIONS(entry_type, prefix, const void *key, uint16_t keylen)
+
+
+#define PYTT_NO_INITIALIZER
+
+/** entry_type is the datatype of an entry. A typedef struct something, usually.
+ *  prefix is the prefix to put on all functions. Will replace pytt in the generic functions.
+ *  keyptr is an expression to get the pointer to the key from the arguments.
+ *  keylen is an expression to get the size of the key from the arguments.
+ *  initializer is any code that should run when creating the table, or PYTT_NO_INITIALIZER for nothing.
+ *  The rest are the arguments passed to entry_create, get, remove and destroy.
+ *  Check the default PYTT_IMPLEMENT_TYPED for an example.
+ */
+
+#define PYTT_IMPLEMENT_TYPED_WITH_OPTIONS(entry_type, prefix, keyptr, keylen, initializer, ...) \
   prefix ## _t *prefix ## _create(int bucket_bits)						\
   {												\
 	prefix ## _t *table =									\
           (prefix ## _t *) pytt_create(bucket_bits, sizeof(entry_type) - sizeof(pytt_entry_t)); \
-	initcode										\
+	initializer										\
 	return table;										\
   }												\
 												\
   void prefix ## _destroy(prefix ## _t *ht)							\
   { pytt_destroy((pytt_t *) ht); }								\
 												\
-  entry_type *prefix ## _entry_create(prefix ## _t *ht, const void *key, uint16_t keylen)	\
-  { return (entry_type *) pytt_entry_create((pytt_t *) ht, key, keylen); }			\
+  entry_type *prefix ## _entry_create(prefix ## _t *ht, __VA_ARGS__)				\
+  { return (entry_type *) pytt_entry_create((pytt_t *) ht, keyptr, keylen); }			\
 												\
-  entry_type *prefix ## _entry_get(prefix ## _t *ht, const void *key, uint16_t keylen)		\
-  { return (entry_type *) pytt_entry_get((pytt_t *) ht, key, keylen); }				\
+  entry_type *prefix ## _entry_get(prefix ## _t *ht, __VA_ARGS__)				\
+  { return (entry_type *) pytt_entry_get((pytt_t *) ht, keyptr, keylen); }			\
 												\
-  void prefix ## _entry_remove(prefix ## _t *ht, const void *key, uint16_t keylen)		\
-  { pytt_entry_remove((pytt_t *) ht, key, keylen); }						\
-												\
-  entry_type *prefix ## _entry_create_z(prefix ## _t *ht, const char *key)			\
-  { return (entry_type *) pytt_entry_create_z((pytt_t *) ht, key); }				\
-												\
-  entry_type *prefix ## _entry_get_z(prefix ## _t *ht, const char *key)				\
-  { return (entry_type *) pytt_entry_get_z((pytt_t *) ht, key); }				\
-												\
-  void prefix ## _entry_remove_z(prefix ## _t *ht, const char *key)				\
-  { pytt_entry_remove_z((pytt_t *) ht, key); }							\
+  void prefix ## _entry_remove(prefix ## _t *ht, __VA_ARGS__)					\
+  { pytt_entry_remove((pytt_t *) ht, keyptr, keylen); }						\
 												\
   void prefix ## _entry_destroy(prefix ## _t *ht, entry_type *ent)				\
   { pytt_entry_destroy((pytt_t *) ht, (pytt_entry_t *) ent); }					\
@@ -216,11 +219,16 @@ extern void         *pytt_entry_get_key_ptr(pytt_t *ht, pytt_entry_t *ent);
   { return (entry_type *) ent->hdr.next; }
 
 
-#define PYTT_IMPLEMENT_TYPED(entry_type, prefix)  \
-	PYTT_IMPLEMENT_TYPED_WITH_INITCODE(entry_type, prefix, ;)
+#define PYTT_IMPLEMENT_TYPED(entry_type, prefix)						\
+  PYTT_IMPLEMENT_TYPED_WITH_OPTIONS(entry_type, prefix, key, keylen, PYTT_NO_INITIALIZER,	\
+                                    const void *key, uint16_t keylen)
 
-#define PYTT_TYPED(entry_type, prefix)           \
-  PYTT_DECLARE_TYPED_TABLE(entry_type, prefix)   \
+#define PYTT_TYPED(entry_type, prefix)          \
+  PYTT_DECLARE_TYPED(entry_type, prefix)	\
   PYTT_IMPLEMENT_TYPED(entry_type, prefix);
+
+#define PYTT_TYPED_WITH_OPTIONS(entry_type, prefix, keyptr, keylen, initializer, ...)	\
+  PYTT_DECLARE_TYPED_WITH_OPTIONS(entry_type, prefix, __VA_ARGS__)			\
+  PYTT_IMPLEMENT_TYPED_WITH_OPTIONS(entry_type, prefix, keyptr, keylen, initializer, __VA_ARGS__)
 
 #endif /* PYTT_H */

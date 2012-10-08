@@ -6,7 +6,10 @@ typedef struct {
   int value;
 } int_entry_t;
 
-PYTT_DECLARE_TYPED(int_entry_t, int_table)
+PYTT_TYPED_WITH_OPTIONS(int_entry_t, int_table,
+			(void *) &key, sizeof(int),
+			PYTT_NO_INITIALIZER,
+			int key)
 
 // Lists the buckets and finds the last entry in bucket 0.
 int_entry_t *list_buckets(int_table_t *ht)
@@ -44,7 +47,7 @@ int main(int argc, char **argv)
   int i;
 
   for (i = 0; i != 500; ++i) {
-    ie = int_table_entry_create(ht, &i, sizeof(int));
+    ie = int_table_entry_create(ht, i);
     ie->value = i;
   }
 
@@ -66,5 +69,3 @@ int main(int argc, char **argv)
 
   return failure;
 }
-
-PYTT_IMPLEMENT_TYPED(int_entry_t, int_table)
