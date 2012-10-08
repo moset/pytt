@@ -1,8 +1,8 @@
 /* Pytt - A simple hash table in C.
- *
+ * 
  * Copyright (c) 2009, 2012, Oscar Sundbom
  * All rights reserved.
- *
+ * 
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
  *     * Redistributions of source code must retain the above copyright
@@ -13,7 +13,7 @@
  *     * Neither the name of the <organization> nor the
  *       names of its contributors may be used to endorse or promote products
  *       derived from this software without specific prior written permission.
- *
+ * 
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER ''AS IS'' AND ANY
  * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -24,35 +24,38 @@
  * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
+ * 
  * *****************************************************************************
- *
+ * 
  * Each table has a fixed number of buckets. Collisions are handled
  * by a doubly linked list which doubles as a total list of all the
  * items and can therefore be used to iterate over all items in the
  * hash table quickly.
- *
+ * 
  * Each entry is of a fixed size and all data for it is allocated
  * in a single block. The key is stored at the end of the data in
  * the *data pointer. This allows implementations to extend the
  * HashEntry struct by creating a struct of its own and casting
  * between them, like so:
- *
+ * 
  * struct int_entry_t
  * {
  *   struct pytt_entry_hdr_t hdr;
  *   int value;
  *   char key[];
  * };
- *
+ * 
  * This way, typing your own data and accessing the key is provided
  * automatically by the compiler. (Well, after a single cast. :))
- *
+ * 
  * It is also possible to declare a typed version of the hash table
- * using the PYTT_DECLARE_TYPED_TABLE macro, which makes the code a
- * bit more type-safe as well as saving you the casting.
- *
+ * using the PYTT_DECLARE_TYPED macros, which makes the code a bit
+ * more type-safe as well as saving you the casting. It also lets
+ * you define what arguments are necessary to dig out a key pointer
+ * and the key's length.
+ * 
  * This code uses lookup3.c by Bob Jenkis for hash key calculation.
+ * 
  */
 
 #ifndef PYTT_H

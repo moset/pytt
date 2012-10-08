@@ -49,8 +49,10 @@ This way, typing your own data and accessing the key is provided
 automatically by the compiler. (Well, after a single cast. :))
 
 It is also possible to declare a typed version of the hash table
-using the PYTT_DECLARE_TYPED_TABLE macro, which makes the code a
-bit more type-safe as well as saving you the casting.
+using the PYTT_DECLARE_TYPED macros, which makes the code a bit
+more type-safe as well as saving you the casting. It also lets
+you define what arguments are necessary to dig out a key pointer
+and the key's length.
 
 This code uses lookup3.c by Bob Jenkis for hash key calculation.
 
